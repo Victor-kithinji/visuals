@@ -1,0 +1,16 @@
+requests>=2.31
+aiohttp>=3.9
+beautifulsoup4>=4.12
+lxml>=4.9
+pdfplumber>=0.10
+pdf2image>=1.16
+pytesseract>=0.3
+camelot-py[cv]>=0.11
+Pillow>=10.0
+pandas>=2.1
+numpy>=1.26
+psycopg2-binary>=2.9
+sqlalchemy>=2.0
+python-dotenv>=1.0
+tqdm>=4.66
+playwright>=1.44

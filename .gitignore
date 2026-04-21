@@ -1,0 +1,39 @@
+# Credentials & secrets
+.env
+*.env.*
+secrets.toml
+.streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+venv/
+.venv/
+env/
+ENV/
+
+# Stray pip artefacts
+=3.9
+
+# Logs
+logs/
+*.log
+
+# Data files (large / raw)
+data/
+
+# Claude Code memory
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
