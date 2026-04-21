@@ -630,8 +630,6 @@ def main():
         st.markdown('<div class="section-title">Inter-county spread over time</div>', unsafe_allow_html=True)
         st.plotly_chart(spread_over_time(df), use_container_width=True, config={"displayModeBar": False})
 
-        st.markdown('<div class="section-title" style="margin-top:16px;">Data quality breakdown</div>', unsafe_allow_html=True)
-        st.plotly_chart(data_quality_donut(df), use_container_width=True, config={"displayModeBar": False})
 
     # ── insights row ──────────────────────────────
     st.markdown('<div class="section-title">Key analytical findings</div>', unsafe_allow_html=True)
@@ -661,9 +659,8 @@ def main():
             </div>""", unsafe_allow_html=True)
 
     # ── raw data expander ─────────────────────────
-    with st.expander("📋 Raw data sample (latest 500 rows)"):
-        show_cols = ["canonical_month", "town", "county", "super_petrol",
-                     "diesel", "kerosene", "source", "data_quality"]
+    with st.expander("Raw data sample (latest 500 rows)"):
+        show_cols = ["canonical_month", "town", "county", "super_petrol", "diesel", "kerosene"]
         st.dataframe(
             df[show_cols].sort_values("canonical_month", ascending=False).head(500),
             use_container_width=True,
