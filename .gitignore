@@ -1,10 +1,24 @@
-# Credentials & secrets
+# ── Credentials & secrets ──────────────────────────────────────
 .env
-*.env.*
+.env.*
+*.env
 secrets.toml
 .streamlit/secrets.toml
+.git-credentials
 
-# Python
+# ── SSH keys ───────────────────────────────────────────────────
+vic
+vic.pub
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ── Python ─────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
@@ -14,26 +28,40 @@ __pycache__/
 dist/
 build/
 .eggs/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Virtual environment
+# ── Virtual environment ─────────────────────────────────────────
 venv/
 .venv/
 env/
 ENV/
 
-# Stray pip artefacts
+# ── Stray pip artefacts ─────────────────────────────────────────
 =3.9
+pip-*.txt
 
-# Logs
+# ── Logs ────────────────────────────────────────────────────────
 logs/
 *.log
 
-# Data files (large / raw)
+# ── Data files (large / raw) ────────────────────────────────────
 data/
+*.csv
+*.xlsx
+*.xls
+*.parquet
+*.sqlite
+*.db
 
-# Claude Code memory
+# ── Claude Code memory ──────────────────────────────────────────
 .claude/
 
-# OS
+# ── OS ──────────────────────────────────────────────────────────
 .DS_Store
+.DS_Store?
 Thumbs.db
+desktop.ini
