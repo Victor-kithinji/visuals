@@ -916,11 +916,10 @@ with tab6:
 
     st.markdown('<div class="section-title">Filtered dataset</div>', unsafe_allow_html=True)
     export = (
-        flt[["price_date","county","town","fuel","price","source_name","price_type","data_quality"]]
+        flt[["price_date","county","town","fuel","price"]]
         .sort_values(["price_date","county","town","fuel"])
-        .rename(columns={"price_date":"Date","county":"County","town":"Town","fuel":"Fuel",
-                         "price":"Price (KES)","source_name":"Source",
-                         "price_type":"Extraction","data_quality":"Quality"})
+        .rename(columns={"price_date":"Date","county":"County","town":"Town",
+                         "fuel":"Fuel","price":"Price (KES)"})
         .copy()
     )
     export["Price (KES)"] = export["Price (KES)"].round(2)
