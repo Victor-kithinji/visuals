@@ -940,3 +940,4 @@ st.markdown(
     "Prices in Kenya Shillings (KES) · Built with Streamlit</p>",
     unsafe_allow_html=True,
 )
+
