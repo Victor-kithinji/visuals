@@ -411,7 +411,7 @@ with st.sidebar:
 
     sel_fuels = st.multiselect("Fuel types", list(FUEL_COLUMNS.keys()), default=list(FUEL_COLUMNS.keys()))
     st.markdown("---")
-    st.caption("Data: EPRA gazette extracts & market estimates")
+    st.caption("Data: EPRA gazette extracts")
 
 # ── Apply filters ──
 mask = (
@@ -512,16 +512,13 @@ with sum_l:
             st.markdown(f"<div class='insight-box {css}'>{item}</div>", unsafe_allow_html=True)
 
 with sum_r:
-    qlt = df_raw["data_quality"].value_counts().to_dict()
-    qlt_str = " · ".join([f"{k}: {v:,}" for k,v in qlt.items()])
     st.markdown(f"""
     <div class='stat-card'>
         <b>Coverage</b><br>
         Period: {start_d.strftime('%b %Y')} – {end_d.strftime('%b %Y')}<br>
         Snapshots: {flt['price_date'].nunique():,}<br>
         Towns: {flt['town'].nunique():,} | Counties: {flt['county'].nunique():,}<br>
-        Records: {len(flt):,}<br>
-        Quality: {qlt_str}
+        Records: {len(flt):,}
     </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -598,14 +595,15 @@ with tab1:
         st.plotly_chart(fig_yoy, use_container_width=True)
 
     with col_b:
-        st.markdown('<div class="section-title">Month-on-month change — last 12 periods</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Month-on-month change - last 12 periods</div>', unsafe_allow_html=True)
         mom12 = nat_trnd.sort_values(["fuel","price_date"]).groupby("fuel").tail(12)
         fig_mom = px.bar(mom12, x="price_date", y="mom", color="fuel",
                          color_discrete_map=FUEL_COLORS, barmode="group",
-                         labels={"mom":"MoM Δ (KES)","price_date":"Period","fuel":"Fuel"},
-                         text_auto=".1f")
-        _fig(fig_mom, height=380, title="Month-on-Month Change — Last 12 Periods")
-        fig_mom.update_traces(textfont_size=9, textposition="outside")
+                         labels={"mom":"MoM Δ (KES)","price_date":"Period","fuel":"Fuel"})
+        _fig(fig_mom, height=380, title="Month-on-month change - last 12 periods")
+        fig_mom.update_traces(textfont_size=9, textposition="inside", texttemplate="%{y:.1f}")
+        fig_mom.update_xaxes(tickangle=-45, tickformat="%b %Y")
+        fig_mom.update_layout(margin=dict(t=60, b=60, l=10, r=10))
         fig_mom.add_hline(y=0, line_width=0.8, line_color="rgba(255,255,255,0.2)")
         st.plotly_chart(fig_mom, use_container_width=True)
 
@@ -615,7 +613,18 @@ with tab1:
                         color="town", line_dash="fuel",
                         labels={"price_date":"Period","price":"KES / litre","town":"Town","fuel":"Fuel"},
                         hover_data={"price":":.2f"})
-        _fig(fig_t, height=460, title="Price Trend — Benchmark Towns by Fuel Type")
+        _fig(fig_t, height=520, title="Price Trend — Benchmark Towns by Fuel Type")
+        fig_t.update_layout(
+            margin=dict(t=60, b=40, l=10, r=200),
+            legend=dict(
+                orientation="v",
+                yanchor="top", y=1,
+                xanchor="left", x=1.02,
+                bgcolor="rgba(0,0,0,0)",
+                font=dict(size=11, color=TEXT_SEC),
+                tracegroupgap=4,
+            ),
+        )
         fig_t.update_yaxes(title_text="KES / litre")
         st.plotly_chart(fig_t, use_container_width=True)
     else:
@@ -709,20 +718,22 @@ with tab2:
 # TAB 3 — VOLATILITY
 # ───────────────────────────────────────────────────────────────
 with tab3:
-    st.markdown('<div class="section-title">Price distribution — all fuel types</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Price distribution - all fuels</div>', unsafe_allow_html=True)
     v1, v2 = st.columns(2)
     with v1:
         fig_box = px.box(flt, x="fuel", y="price", color="fuel",
                          color_discrete_map=FUEL_COLORS, points="outliers", notched=True,
                          labels={"price":"KES / litre","fuel":"Fuel"})
-        _fig(fig_box, height=440, title="Price Distribution by Fuel Type")
+        _fig(fig_box, height=440, title="Price distribution by fuel")
         fig_box.update_traces(marker_size=3)
+        fig_box.update_layout(showlegend=False, margin=dict(t=50, b=40, l=10, r=10))
         st.plotly_chart(fig_box, use_container_width=True)
     with v2:
         fig_vio = px.violin(flt, x="fuel", y="price", color="fuel",
                             color_discrete_map=FUEL_COLORS, box=True, points=False,
                             labels={"price":"KES / litre","fuel":"Fuel"})
-        _fig(fig_vio, height=440, title="Violin — Price Spread Distribution")
+        _fig(fig_vio, height=440, title="Price spread distribution")
+        fig_vio.update_layout(showlegend=False, margin=dict(t=50, b=40, l=10, r=10))
         st.plotly_chart(fig_vio, use_container_width=True)
 
     st.markdown('<div class="section-title">County price volatility — coefficient of variation</div>', unsafe_allow_html=True)
@@ -746,14 +757,16 @@ with tab3:
             use_container_width=True, hide_index=True
         )
 
-    st.markdown('<div class="section-title">Rolling 3-period price variability</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Rolling price variability</div>', unsafe_allow_html=True)
     roll = (nat_trnd.copy().sort_values(["fuel","price_date"])
             .assign(roll_std=lambda d: d.groupby("fuel")["avg"].transform(lambda x: x.rolling(3).std())))
     fig_roll = px.line(roll, x="price_date", y="roll_std", color="fuel",
                        color_discrete_map=FUEL_COLORS,
-                       labels={"price_date":"Period","roll_std":"3-Period Rolling Std Dev (KES)","fuel":"Fuel"})
-    _fig(fig_roll, height=360, title="Rolling 3-Period Standard Deviation")
-    fig_roll.update_yaxes(title_text="Std Dev (KES)")
+                       labels={"price_date":"","roll_std":"Std dev (KES)","fuel":"Fuel"})
+    _fig(fig_roll, height=360, title="Rolling price variability (3-period std dev)")
+    fig_roll.update_yaxes(title_text="Std dev (KES)")
+    fig_roll.update_xaxes(tickangle=-45, tickformat="%b %Y")
+    fig_roll.update_layout(margin=dict(t=60, b=60, l=10, r=10))
     st.plotly_chart(fig_roll, use_container_width=True)
 
 
@@ -865,20 +878,22 @@ with tab5:
         fig_kw.update_yaxes(title_text="% of Petrol Price", range=[0, 115])
         st.plotly_chart(fig_kw, use_container_width=True)
 
-    st.markdown('<div class="section-title">Cross-fuel correlation — latest snapshot</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Cross-fuel correlation - latest</div>', unsafe_allow_html=True)
     corr = cross_fuel_corr(df_latest)
     cf1, cf2 = st.columns(2)
     if "Petrol" in corr.columns and "Diesel" in corr.columns:
         with cf1:
             fig_s1 = px.scatter(corr, x="Petrol", y="Diesel", hover_data=["town","county"], color="county",
                                 labels={"Petrol":"Petrol (KES)","Diesel":"Diesel (KES)"})
-            _fig(fig_s1, height=420, title="Petrol vs Diesel — Latest")
+            _fig(fig_s1, height=420, title="Petrol vs diesel")
+            fig_s1.update_layout(showlegend=False, margin=dict(t=60, b=40, l=10, r=10))
             st.plotly_chart(fig_s1, use_container_width=True)
     if "Petrol" in corr.columns and "Kerosene" in corr.columns:
         with cf2:
             fig_s2 = px.scatter(corr, x="Petrol", y="Kerosene", hover_data=["town","county"], color="county",
                                 labels={"Petrol":"Petrol (KES)","Kerosene":"Kerosene (KES)"})
-            _fig(fig_s2, height=420, title="Petrol vs Kerosene — Latest")
+            _fig(fig_s2, height=420, title="Petrol vs kerosene")
+            fig_s2.update_layout(showlegend=False, margin=dict(t=60, b=40, l=10, r=10))
             st.plotly_chart(fig_s2, use_container_width=True)
 
     st.markdown('<div class="section-title">All products — absolute price trend</div>', unsafe_allow_html=True)
@@ -935,8 +950,7 @@ with tab6:
 st.markdown("---")
 st.markdown(
     f"<p style='color:{TEXT_MUT};font-size:11px;text-align:center'>"
-    "Kenya Fuel Price Intelligence · Data: EPRA gazette extracts & market estimates · "
-    "Prices in Kenya Shillings (KES) · Built with Streamlit</p>",
+    "Kenya Fuel Price Intelligence</p>",
     unsafe_allow_html=True,
 )
 

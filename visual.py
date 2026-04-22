@@ -634,14 +634,11 @@ def main():
     # ── insights row ──────────────────────────────
     st.markdown('<div class="section-title">Key analytical findings</div>', unsafe_allow_html=True)
 
-    i1, i2, i3, i4 = st.columns(4)
+    i1, i2, i3 = st.columns(3)
     insights = [
         ("Remoteness premium",
          f"KES {spread_val:.0f}/litre",
          "Persistent gap between urban centres and remote northern counties driven by last-mile logistics costs."),
-        ("Estimated data period",
-         "Pre-2010",
-         "2006–2009 prices are market estimates, not EPRA gazette extracts. Use directionally, not for precision procurement."),
         ("Diesel convergence",
          "Post-2019",
          "Diesel/petrol ratio has trended toward parity, reflecting tax restructuring. Watch for margin squeeze on transport operators."),
@@ -649,7 +646,7 @@ def main():
          f"Kerosene {kero_ratio:.0f}%",
          "When kerosene approaches petrol parity, low-income household energy burden spikes. Key input for social protection targeting."),
     ]
-    for col, (label, value, detail) in zip([i1, i2, i3, i4], insights):
+    for col, (label, value, detail) in zip([i1, i2, i3], insights):
         with col:
             st.markdown(f"""
             <div class="insight-card">
@@ -671,7 +668,7 @@ def main():
     st.markdown("---")
     st.markdown(
         "<p style='font-size:11px;color:#888780;text-align:center;'>"
-        "Source: EPRA pump price gazette extracts &amp; market estimates · "
+        "Source: EPRA pump price gazette extracts · "
         "energypedia.info/wiki/Fuel_Prices_Kenya</p>",
         unsafe_allow_html=True,
     )
