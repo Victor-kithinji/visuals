@@ -135,6 +135,81 @@ def hex_rgba(h, a=0.15):
 
 
 # ═══════════════════════════════════════════════════════════════
+# OVERVIEW CHART HELPERS  (ported from visual.py, adapted to long→wide pivot)
+# ═══════════════════════════════════════════════════════════════
+def ov_trend_chart(df_wide: pd.DataFrame, bench_county: str, sel_fuels: list):
+    filt = df_wide[df_wide["county"] == bench_county]
+    avail = [f for f in sel_fuels if f in filt.columns]
+    if not avail:
+        return go.Figure()
+    monthly = filt.groupby("price_date")[avail].mean().reset_index()
+    dash_map = {"Petrol": "solid", "Diesel": "dash", "Kerosene": "dot"}
+    fig = go.Figure()
+    for fuel in avail:
+        color = FUEL_COLORS.get(fuel, BLUE)
+        fig.add_trace(go.Scatter(
+            x=monthly["price_date"], y=monthly[fuel].round(1),
+            name=fuel, mode="lines",
+            line=dict(color=color, dash=dash_map.get(fuel, "solid"), width=2),
+            fill="tozeroy" if fuel == avail[0] else "none",
+            fillcolor=hex_rgba(color, 0.07),
+            hovertemplate=f"%{{y:.1f}} KES<extra>{fuel}</extra>",
+        ))
+    _fig(fig, height=340, title=f"Price trajectory - {bench_county}")
+    fig.update_yaxes(title_text="KES / litre")
+    fig.update_xaxes(tickangle=-45)
+    return fig
+
+
+def ov_ratio_chart(df_wide: pd.DataFrame, bench_county: str):
+    filt = df_wide[df_wide["county"] == bench_county]
+    needed = [c for c in ["Petrol","Diesel","Kerosene"] if c in filt.columns]
+    monthly = filt.groupby("price_date")[needed].mean().reset_index().dropna(subset=["Petrol"])
+    fig = go.Figure()
+    if "Diesel" in monthly.columns:
+        monthly["diesel_ratio"] = (monthly["Diesel"] / monthly["Petrol"] * 100).round(1)
+        fig.add_trace(go.Scatter(
+            x=monthly["price_date"], y=monthly["diesel_ratio"],
+            name="Diesel / Petrol",
+            line=dict(color=FUEL_COLORS["Diesel"], dash="dash", width=2),
+            hovertemplate="%{y:.1f}%<extra>Diesel/Petrol</extra>",
+        ))
+    if "Kerosene" in monthly.columns:
+        monthly["kerosene_ratio"] = (monthly["Kerosene"] / monthly["Petrol"] * 100).round(1)
+        fig.add_trace(go.Scatter(
+            x=monthly["price_date"], y=monthly["kerosene_ratio"],
+            name="Kerosene / Petrol",
+            line=dict(color=FUEL_COLORS["Kerosene"], width=2),
+            fill="tozeroy", fillcolor=hex_rgba(FUEL_COLORS["Kerosene"], 0.07),
+            hovertemplate="%{y:.1f}%<extra>Kerosene/Petrol</extra>",
+        ))
+    _fig(fig, height=280, title="Fuel type ratio vs petrol")
+    fig.update_yaxes(title_text="% of petrol price", range=[30, 110])
+    fig.update_xaxes(tickangle=-45)
+    return fig
+
+
+def ov_spread_chart(df_wide: pd.DataFrame):
+    if "Petrol" not in df_wide.columns:
+        return go.Figure()
+    monthly = (
+        df_wide.groupby("price_date")["Petrol"]
+        .agg(lo="min", hi="max").reset_index()
+    )
+    monthly["spread"] = (monthly["hi"] - monthly["lo"]).round(1)
+    fig = go.Figure(go.Scatter(
+        x=monthly["price_date"], y=monthly["spread"],
+        fill="tozeroy", fillcolor=hex_rgba(PURPLE, 0.12),
+        line=dict(color=PURPLE, width=1.5),
+        hovertemplate="Spread: %{y:.1f} KES<extra></extra>",
+    ))
+    _fig(fig, height=280, title="Inter-county petrol spread")
+    fig.update_yaxes(title_text="KES spread")
+    fig.update_xaxes(tickangle=-45)
+    return fig
+
+
+# ═══════════════════════════════════════════════════════════════
 # DATABASE
 # ═══════════════════════════════════════════════════════════════
 def _build_url() -> str:
@@ -409,6 +484,12 @@ with st.sidebar:
     default_bench = [t for t in ["Nairobi","Mombasa","Kisumu","Eldoret","Mandera"] if t in all_towns]
     bench_towns = st.multiselect("Benchmark towns", all_towns, default=default_bench)
 
+    bench_county = st.selectbox(
+        "Benchmark county",
+        all_counties,
+        index=all_counties.index("Nairobi") if "Nairobi" in all_counties else 0,
+    )
+
     sel_fuels = st.multiselect("Fuel types", list(FUEL_COLUMNS.keys()), default=list(FUEL_COLUMNS.keys()))
     st.markdown("---")
     st.caption("Data: EPRA gazette extracts")
@@ -437,6 +518,13 @@ vol       = volatility_stats(flt)
 yoy       = yoy_change(flt)
 insights  = generate_insights(flt, df_latest, df_prev)
 latest_dt = pd.to_datetime(df_latest["price_date"].max())
+
+df_wide = (
+    flt.pivot_table(index=["price_date","county","town"], columns="fuel",
+                    values="price", aggfunc="mean")
+    .reset_index()
+)
+df_wide.columns.name = None
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -542,7 +630,8 @@ st.markdown("---")
 # ═══════════════════════════════════════════════════════════════
 # TABS
 # ═══════════════════════════════════════════════════════════════
-tab1,tab2,tab3,tab4,tab5,tab6 = st.tabs([
+tab0,tab1,tab2,tab3,tab4,tab5,tab6 = st.tabs([
+    "Overview",
     "Price Trends",
     "Regional",
     "Volatility",
@@ -550,6 +639,56 @@ tab1,tab2,tab3,tab4,tab5,tab6 = st.tabs([
     "Cross-fuel",
     "Raw Data",
 ])
+
+
+# ───────────────────────────────────────────────────────────────
+# TAB 0 — OVERVIEW
+# ───────────────────────────────────────────────────────────────
+with tab0:
+    st.markdown('<div class="section-title">Price trajectory</div>', unsafe_allow_html=True)
+    st.plotly_chart(ov_trend_chart(df_wide, bench_county, sel_fuels),
+                    use_container_width=True, config={"displayModeBar": False})
+
+    ov_a, ov_b = st.columns(2)
+    with ov_a:
+        st.markdown('<div class="section-title">Fuel type ratio vs petrol</div>', unsafe_allow_html=True)
+        if "Petrol" in df_wide.columns:
+            st.plotly_chart(ov_ratio_chart(df_wide, bench_county),
+                            use_container_width=True, config={"displayModeBar": False})
+        else:
+            st.info("Select Petrol to view ratios.")
+    with ov_b:
+        st.markdown('<div class="section-title">Inter-county spread</div>', unsafe_allow_html=True)
+        st.plotly_chart(ov_spread_chart(df_wide),
+                        use_container_width=True, config={"displayModeBar": False})
+
+    st.markdown('<div class="section-title">Key signals</div>', unsafe_allow_html=True)
+    ov_latest    = df_wide[df_wide["price_date"] == df_wide["price_date"].max()]
+    ov_spread_v  = (ov_latest["Petrol"].max() - ov_latest["Petrol"].min()) if "Petrol" in ov_latest.columns else 0
+    ov_bench     = ov_latest[ov_latest["county"] == bench_county]
+    ov_petrol    = ov_bench["Petrol"].mean()   if "Petrol"   in ov_bench.columns else 0
+    ov_kero      = ov_bench["Kerosene"].mean() if "Kerosene" in ov_bench.columns else 0
+    ov_kero_pct  = (ov_kero / ov_petrol * 100) if ov_petrol else 0
+
+    ic1, ic2, ic3 = st.columns(3)
+    for slot, label, value, detail in [
+        (ic1, "Remoteness premium",
+         f"KES {ov_spread_v:.0f} / litre",
+         "Persistent gap between urban centres and remote northern counties driven by last-mile logistics costs."),
+        (ic2, "Diesel convergence",
+         "Post-2019",
+         "Diesel/petrol ratio has trended toward parity reflecting tax restructuring. Watch for margin squeeze on transport operators."),
+        (ic3, "Welfare risk signal",
+         f"Kerosene at {ov_kero_pct:.0f}% of petrol",
+         "When kerosene approaches petrol parity, low-income household energy burden spikes."),
+    ]:
+        with slot:
+            st.markdown(f"""
+            <div class='kpi-card'>
+                <div class='kpi-label'>{label}</div>
+                <div class='kpi-value' style='font-size:18px;line-height:1.3'>{value}</div>
+                <div class='kpi-sub kpi-neu' style='margin-top:6px;line-height:1.6'>{detail}</div>
+            </div>""", unsafe_allow_html=True)
 
 
 # ───────────────────────────────────────────────────────────────
